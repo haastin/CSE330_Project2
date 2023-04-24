@@ -26,6 +26,38 @@ int ptep_test_and_clear_young(struct vm_area_struct *vma, unsigned long addy, pt
 	return ret;
 }
 
+/*pte_t get_pte_addy(const struct mm_struct *const mm, const unsigned long i){
+	
+	pgd_t *pgd;
+	p4d_t *p4d;
+	pmd_t *pmd;
+	pud_t *pud;
+	pte_t *ptep;
+	pte_t page = NULL;
+
+	pgd = pgd_offset(curr_process->mm, i);
+                if(pgd_none(pgd) || pgd_bad(pgd)){
+			return page;
+		}
+                p4d = p4d_offset(pgd, i);
+		if(p4d_none(p4d) || p4d_bad(p4d)){
+                        return page;
+                }
+                pud = pud_offset(p4d, i);
+		if(pud_none(pud) || pud_bad(pud)){
+                        return page;
+                }
+                pmd = pmd_offset(pud, i);
+		if(pmd_none(pmd) || pmd_bad(pmd)){
+                        return page;
+                }
+                ptep = pte_offset_map(pmd, i);
+		if(!ptep){
+			return page;
+		}
+		page = pte_page(*ptep);
+}*/
+
 
 enum hrtimer_restart timer_callback(struct hrtimer *timer_for_restart){
 	
@@ -38,26 +70,27 @@ enum hrtimer_restart timer_callback(struct hrtimer *timer_for_restart){
         while(it != NULL){
 
                 for(unsigned long i = it->vm_start; i < it->vm_end; i += PAGE_SIZE){
-                pgd_t *pgd = pgd_offset(curr_process->mm, i);
+                //pte_t pte = get_pte_addy(curr_process->mm, i);
+			pgd_t *pgd = pgd_offset(curr_process->mm, i);
+		//if(pgd_none(pgd) || pgd_bad(pgd)){
+		
                 p4d_t *p4d = p4d_offset(pgd, i);
                 pud_t *pud = pud_offset(p4d, i);
                 pmd_t *pmd = pmd_offset(pud, i);
-                pte_t *pte = pte_offset_map(pmd, i);
+               pte_t *pte = pte_offset_map(pmd, i);
                 if(pte){
                         if(pte_present(*pte)){
-                                RSS_size++;
+                                RSS_size+= 4;
 				if(ptep_test_and_clear_young(it, i, pte)){
-						WSS_size++;
-						}
+						WSS_size+= 4;	
+				}
                         }
                         else{
-                                SWAP_size++;
-                        }
-                }
-                }
+                                SWAP_size+= 4;
+                        } } } 
                 it = it->vm_next;
         }
-	printk(KERN_INFO "PID %d: RSS=%d KB, SWAP=%d KB, WSS=%d KB\n", pid,RSS_size, SWAP_size, WSS_size); 
+	printk(KERN_INFO "PID %d: RSS=%d KB, SWAP=%d KB, WSS=%d KB\n", pid,RSS_size, SWAP_size,WSS_size); 
 
 	return HRTIMER_RESTART;
 }
